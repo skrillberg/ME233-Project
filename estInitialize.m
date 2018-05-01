@@ -21,7 +21,7 @@ internalState.theta = 45/180*3.14159;
 internalState.dt_prev=0.1;
 internalState.gamma = 0;
 
-internalState.Pm = eye(6);
+internalState.Pm = diag([.0001,.0001,.0000001,.0000001,.00001,.000001]);
 
 
 end

@@ -34,15 +34,20 @@ Pm = internalStateIn.Pm; %variance of states; x,y,xl,yl,theta,gamma
 
 n=6;
 
-G = eye(6); %variance of process noise 
+G = diag([1,1,0.01,0.01,1,1]); %variance of process noise 
+
+%measurement noises
+gamma_var = .01;
+omega_var = .01;
+p_cov = [1.0893,1.533;1.5333,2.988];
 
 %generate 12 sigma points 
 
-B=1.3;
-r=.34;
+B=0.8;
+r=.425;
 matrix_root = chol(n*Pm);
 
-state_vec_m = vectorize_state(internalStateIn)
+state_vec_m = vectorize_state(internalStateIn);
 
 
 
@@ -51,7 +56,7 @@ for i = 1:n
     s_xm_prev(:,i+n) = state_vec_m - matrix_root(:,i);
 end
 
-display(s_xm_prev)
+%display(s_xm_prev)
 
 %compute prior points 
 
@@ -77,7 +82,7 @@ for i = 1:2*n
 end
 
 
-state_vec_p = vectorize_state(state_p) %vectorize state vector
+state_vec_p = vectorize_state(state_p); %vectorize state vector
 
 %compute Pp stats
 Pp = zeros(n);
@@ -87,7 +92,7 @@ for i = 1:2*n
     Pp = Pp + 1/(2*n)*(si_vector-state_vec_p)*(si_vector-state_vec_p)';    
 end
 
-Pp = Pp + G
+Pp = Pp + G;
 
 %calculate measurement update
 
@@ -104,24 +109,86 @@ end
 %create sz points, expected measurement sz points  
 
 for i=1:2*n
-    sz(:,i) = compute_sz_points(sxp_state(i)); %each column is an spoint 
+    sz(:,i) = compute_sz_points(sxp_state(i),dt,r,measurement_available,B); %each column is an spoint 
 end
 
-zhat = sum(sz,2)/(2*n)  %compute average of measurement estimate
+zhat = sum(sz,2)/(2*n);  %compute average of measurement estimate
 
-sz_forloop = zeros(n);
+if measurement_available
+    pzz_forloop = zeros(4);
+    M=[gamma_var,0,0,0;
+       0,omega_var,0,0;
+       0,0,p_cov(1,:);
+       0,0,p_cov(2,:)];
+    
+else 
+    pzz_forloop = zeros(2);
+    M = diag([gamma_var,omega_var]);
+end
 
 for i = 1:2*n
-    sz_centered(:,i) = sz - zhat;
-    sz_forloop = sz_forloop + sz_centered(:,i)*sz_centered(:,i)'/(2*n);
+    sz_centered(:,i) = sz(:,i) - zhat;
+    %pzz_forloop = pzz_forloop + sz_centered(:,i)*sz_centered(:,i)'/(2*n);
 end
 
-sz_forlo
-Pzz = sum(sz,2)/(2*n)
+pzz_forloop = pzz_forloop + M;
+Pzz = sz_centered*sz_centered'/(2*n) +M; % compute variance of sz points
 
+%compute Pxz
+for i = 1:2*n
+    sxp_centered(:,i) = vectorize_state(sxp_state(i))-state_vec_p; %center sxp matrix
+    
+end
 %
 
+%disp(sxp_centered);
+Pxz = sxp_centered*sz_centered'/(2*n);
 
+K = Pxz*inv(Pzz);
+
+%compute xm, which is dependent on if we have xy data or not
+if measurement_available
+    z = [steeringAngle; pedalSpeed;measurement(1);measurement(2)];
+    xm_vec = state_vec_p + K*(z-zhat);
+else
+    z = [steeringAngle; pedalSpeed];
+    xm_vec = state_vec_p + K*(z-zhat);
+end
+
+%compute Pm
+
+Pm = Pp-K*Pzz*K';
+
+%print for debug
+K
+state_vec_p
+z
+zhat
+%figure
+%scatter(sz_centered(1,:),sz_centered(2,:))
+%% OUTPUTS %%
+% Update the internal state (will be passed as an argument to the function
+% at next run), must obviously be compatible with the format of
+% internalStateIn:
+internalStateIn;
+z;
+velocity = r*5*pedalSpeed;
+finalState = devectorize_state(xm_vec) ;%xhat_m state
+
+internalStateOut.x = finalState.x;
+internalStateOut.y = finalState.y;
+internalStateOut.theta = finalState.theta;
+internalStateOut.gamma = finalState.gamma;
+internalStateOut.xl = finalState.xl;
+internalStateOut.yl = finalState.yl;
+internalStateOut.dt_prev = dt;
+internalStateOut.Pm = Pm;
+
+x=finalState.x;
+y = finalState.y;
+theta = finalState.theta;
+
+end
 
 %% Functions 
 function [state] = compute_s_points(x,y,xl,yl,theta,gamma,dt,dtp,B)
@@ -155,25 +222,24 @@ function [meas_vector] = compute_sz_points(state_p_i,Ts,r,meas_available,B)
        omega_z = sqrt( (state_p_i.x-state_p_i.xl)^2 + (state_p_i.y - state_p_i.yl)^2 )/ (5*Ts*r);
        Px = state_p_i.x + 1/2 * B *cos(state_p_i.theta);
        Py = state_p_i.y + 1/2 * B * sin(state_p_i.theta);
-       meas_vector = [gamma_z;omega_z;Px;Py]
+       meas_vector = [gamma_z;omega_z;Px;Py];
        
    else
        
        omega_z = sqrt( (state_p_i.x-state_p_i.xl)^2 + (state_p_i.y - state_p_i.yl)^2 )/ (5*Ts*r);
        gamma_z = state_p_i.gamma;
-       meas_vector = [gamma_z;omega_z]
+       meas_vector = [gamma_z;omega_z];
        
    end
    
 end
-%% OUTPUTS %%
-% Update the internal state (will be passed as an argument to the function
-% at next run), must obviously be compatible with the format of
-% internalStateIn:
 
-internalStateOut.x = x;
-internalStateOut.y = y;
-internalStateOut.theta = theta;
-internalStateOut.color = color;
+function [state_object] = devectorize_state(state_vec)
+    state_object.x = state_vec(1);
+    state_object.y = state_vec(2);
+    state_object.xl = state_vec(3);
+    state_object.yl = state_vec(4);
+    state_object.theta = state_vec(5);
+    state_object.gamma = state_vec(6);
 
 end
