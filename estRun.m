@@ -33,8 +33,10 @@ Pm = internalStateIn.Pm; %variance of states; x,y,xl,yl,theta,gamma
 
 n=3;
 
-
-G = diag([.01,.01,0.1]); %variance of process noise 
+x_var = .05*1;
+y_var = .05*1;
+theta_var = .1*1;
+G = diag([x_var,y_var,theta_var]); %variance of process noise 
 
 %measurement noises
 
@@ -144,10 +146,10 @@ zhat = sum(sz,2)/(2*n);  %compute average of measurement estimate
         xm_vec = state_vec_p + K*(z-zhat);
 
     end
-    K
-    state_vec_p
-    z
-    zhat
+    K;
+    state_vec_p;
+    z;
+    zhat;
 
 else
     K=0;
@@ -172,8 +174,7 @@ internalStateIn;
 velocity = r*5*pedalSpeed;
 finalState = devectorize_state(xm_vec) ;%xhat_m state
 
-%v=sqrt((finalState.x  - finalState.xl)^2+(finalState.y-finalState.yl)^2)/dt
-vtrue = pedalSpeed*5*r
+
 
 internalStateOut.x = finalState.x;
 internalStateOut.y = finalState.y;
