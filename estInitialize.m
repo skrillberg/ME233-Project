@@ -13,15 +13,14 @@ function internalState = estInitialize
 % and angle, and probably you'll remove the color.
 internalState.x = 0;
 internalState.y = 0;
-internalState.xl = 0;
-internalState.yl = 0;
+
 internalState.theta = 45/180*3.14159;
 
 
 internalState.dt_prev=0.1;
-internalState.gamma = 0;
 
-internalState.Pm = diag([.0001,.0001,.0000001,.0000001,.00001,.000001]);
+
+internalState.Pm = diag([.0001,.0001,.0000001]);
 
 
 end
