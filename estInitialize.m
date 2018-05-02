@@ -17,7 +17,7 @@ internalState.y = 0;
 internalState.theta = 45/180*3.14159;
 
 
-internalState.dt_prev=0.1;
+
 
 
 internalState.Pm = diag([.0001,.0001,.0000001]);
