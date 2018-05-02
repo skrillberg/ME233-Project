@@ -34,7 +34,7 @@ Pm = internalStateIn.Pm; %variance of states; x,y,xl,yl,theta,gamma
 
 n=6;
 
-G = diag([.01,.01,0.01,0.01,.01,.01]); %variance of process noise 
+G = diag([.01,.01,0.01,0.01,.1,.1]); %variance of process noise 
 
 %measurement noises
 gamma_var = .01;
