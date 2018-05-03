@@ -29,9 +29,12 @@ theta_hat_prev = internalStateIn.theta;
 
 gamma = steeringAngle;  %steering angle
 
-Pm = internalStateIn.Pm; %variance of states; x,y,xl,yl,theta,gamma
+Pm = internalStateIn.Pm; %initialize variance of states; x,y,theta
 
 n=3; %number of states
+
+
+%process noises
 
 x_var = .05*1; %variance of process noise for x state 
 y_var = .05*1; %variance of process noise for y state
@@ -39,16 +42,17 @@ theta_var = .1*1; %variance of process noise for theta state
 
 G = diag([x_var,y_var,theta_var]); %variance of process noise 
 
-%measurement noises
+%measurement noises, calculated using covariance from run 0
 
-p_cov = [1.0893,1.533;1.5333,2.988];
+p_cov = [1.0893,1.5333; ...
+         1.5333,2.9880];
 
 
-%% Generate 12 sigma points 
+%% Generate 6 sigma points 
 
 B=0.8; % bike baseline
 
-r=.425; % tire radius
+r=0.425; % tire radius
 
 v = r*5*pedalSpeed; %calculate bike speed from pedal speed
 
@@ -70,6 +74,7 @@ end
 for i = 1:2*n
     sxp_state(i) = compute_s_points(s_xm_prev(1,i),s_xm_prev(2,i),s_xm_prev(3,i),gamma,dt,B,v);
 end
+
 %compute statistics
 
 state_p.x=0; %state_p is the state vector for xhat_p
@@ -117,12 +122,11 @@ end
 
 if measurement_available
     for i=1:2*n
-        %compute sz points by pushing sigma points through measurment model
+        %compute sz points by pushing sigma points through measurement model
         sz(:,i) = compute_sz_points(sxp_state(i),dt,r,measurement_available,B); %each column is an spoint 
     end
 
     zhat = sum(sz,2)/(2*n);  %compute average of measurement estimate
-    %pzz_forloop = zeros(2);
     
     M=p_cov; %measurement covariance 
     
@@ -131,12 +135,10 @@ if measurement_available
     for i = 1:2*n
         % removes the mean from sz so we can compute Pzz
         sz_centered(:,i) = sz(:,i) - zhat;
-        %pzz_forloop = pzz_forloop + sz_centered(:,i)*sz_centered(:,i)'/(2*n);
     end
 
-    %pzz_forloop = pzz_forloop + M;
     
-    Pzz = sz_centered*sz_centered'/(2*n) +M; % compute variance of sz points
+    Pzz = sz_centered*sz_centered'/(2*n) + M; % compute variance of sz points
 
     %this for loop removes the mean from prior sigma points
     for i = 1:2*n
@@ -216,7 +218,7 @@ function [meas_vector] = compute_sz_points(state_p_i,Ts,r,meas_available,B,gamma
     %computes measurement model update with s points
    if meas_available
        
-       Px = state_p_i.x + 1/2 * B *cos(state_p_i.theta);
+       Px = state_p_i.x + 1/2 * B * cos(state_p_i.theta);
        Py = state_p_i.y + 1/2 * B * sin(state_p_i.theta);
        meas_vector = [Px;Py];
        
@@ -229,7 +231,6 @@ function [state_object] = devectorize_state(state_vec)
     %utility that turns a state vector into a state object
     state_object.x = state_vec(1);
     state_object.y = state_vec(2);
-
     state_object.theta = state_vec(3);
 
 

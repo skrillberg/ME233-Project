@@ -14,13 +14,13 @@ function internalState = estInitialize
 internalState.x = 0;
 internalState.y = 0;
 
-internalState.theta = 45/180*3.14159;
+internalState.theta = (45/180)*pi;
 
 
 
 
 
-internalState.Pm = diag([.0001,.0001,.0000001]);
+internalState.Pm = diag([.0001,.0001,.1]);
 
 
 end
