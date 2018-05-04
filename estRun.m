@@ -38,7 +38,7 @@ n=3; %number of states
 
 x_var = .05*1; %variance of process noise for x state 
 y_var = .05*1; %variance of process noise for y state
-theta_var = .1*1; %variance of process noise for theta state
+theta_var = .11*1; %variance of process noise for theta state
 
 G = diag([x_var,y_var,theta_var]); %variance of process noise 
 
